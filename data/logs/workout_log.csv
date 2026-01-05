@@ -1,0 +1,4 @@
+timestamp,exercise,rep_count,knee_angle,hip_angle,error_tag
+2026-01-05 23:44:15,Squat,1,40.16,0,NONE
+2026-01-05 23:44:26,Squat,2,35.01,0,NONE
+2026-01-05 23:44:37,Squat,3,39.67,0,NONE

@@ -1,0 +1,11 @@
+ultralytics
+opencv-python
+streamlit
+numpy
+pandas
+langchain
+langchain-community
+langchain-openai
+faiss-cpu
+pypdf
+python-dotenv
