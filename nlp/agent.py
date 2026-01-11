@@ -1,64 +1,57 @@
 # nlp/agent.py
-import pandas as pd
 import os
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from nlp.rag_engine import KnowledgeBase
 
-load_dotenv() # Loads the API key from .env
+load_dotenv()
 
 class FitnessAgent:
     def __init__(self):
         api_key = os.getenv("OPENAI_API_KEY")
-        self.llm = ChatOpenAI(model="gpt-4o", openai_api_key=api_key)
+        self.llm = ChatOpenAI(model="gpt-4o", openai_api_key=api_key, temperature=0.7)
         self.kb = KnowledgeBase(api_key)
-        self.log_path = "data/logs/workout_log.csv"
 
-    def get_coaching_advice(self, user_query):
-        # 1. Read the CSV Log
-        try:
-            df = pd.read_csv(self.log_path)
-            # Focus on reps where an error occurred
-            recent_errors = df[df['error_tag'] != "NONE"].tail(10).to_string()
-            stats = f"Total Frames Analyzed: {len(df)}, Last Rep Count: {df['rep_count'].max()}"
-        except Exception as e:
-            recent_errors = "No workout data found."
-            stats = ""
+    def get_coaching_advice(self, user_query, chat_history, workout_summary):
+        # 1. Get Biomechanical Knowledge from PDFs (only if query is technical)
+        is_technical = any(word in user_query.lower() for word in ["squat", "form", "depth", "pain", "angle", "error", "biomechanics"])
+        expert_context = self.kb.query(user_query) if is_technical else "Generic interaction."
 
-        # 2. Get Expert Knowledge (RAG)
-        expert_context = self.kb.query(user_query)
-
-        # 3. Enhanced "Human-Like" Prompt
+        # 2. The "Human Coach" Prompt
         template = """
-        You are 'Coach Alex', a world-class Biomechanics Expert and empathetic Fitness Coach.
+        You are 'Coach Alex', a friendly, professional, and world-class Biomechanics Coach.
         
-        CONTEXT FROM USER'S RECENT WORKOUT:
-        {stats}
-        Specific Errors Detected:
-        {workout_data}
-        
-        EXPERT KNOWLEDGE BASE (from research papers):
-        {expert_knowledge}
-        
-        USER'S QUESTION: {question}
-        
-        COACHING GUIDELINES:
-        1. Start by acknowledging their progress. 
-        2. If you see 'SHALLOW_SQUAT', explain that going deeper increases muscle recruitment but must be balanced against knee joint shear.
-        3. Mention specific biomechanical terms from the knowledge base (e.g., Joint Shear, Lumbar Flexion, L4-L5 compression) when explaining 'Why'.
-        4. Give 2 specific "Drills" to fix the issue.
-        5. Keep the tone conversational, like a real person in a gym.
+        PERSONA:
+        - Talk like a human: Use phrases like "Hey there!", "Let's see...", "Good job on that set."
+        - Be concise: Don't give a lecture unless asked.
+        - Guardrails: You ONLY talk about fitness, biomechanics, and health. If a user asks about apples, movies, or politics, say: 
+          "I'd love to help, but I'm specialized in fitness and biomechanics! Let's get back to your training."
+
+        CONTEXT:
+        - LAST WORKOUT DATA: {workout_summary}
+        - SCIENTIFIC RESEARCH: {expert_knowledge}
+
+        INSTRUCTIONS:
+        1. If the user says "Hi" or "Hello", just reply naturally and ask how their training is going. DO NOT analyze data yet.
+        2. If they ask about their performance, use the LAST WORKOUT DATA provided.
+        3. If they ask "Why" an error matters, use the SCIENTIFIC RESEARCH to explain the biomechanics (e.g., joint shear, lumbar stress).
+        4. Remember the conversation history to stay helpful.
         """
 
-        prompt = ChatPromptTemplate.from_template(template)
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", template),
+            MessagesPlaceholder(variable_name="chat_history"),
+            ("user", "{input}")
+        ])
+
         chain = prompt | self.llm
         
         response = chain.invoke({
-            "stats": stats,
-            "workout_data": recent_errors, 
-            "expert_knowledge": expert_context,
-            "question": user_query
+            "input": user_query,
+            "chat_history": chat_history,
+            "workout_summary": workout_summary,
+            "expert_knowledge": expert_context
         })
         
         return response.content

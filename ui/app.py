@@ -5,66 +5,76 @@ ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if ROOT_DIR not in sys.path:
     sys.path.append(ROOT_DIR)
 
-
 # ui/app.py
+import sys
+import os
 import streamlit as st
 from ui.upload_mode import render_upload_mode
 from nlp.agent import FitnessAgent
-from nlp.rag_engine import KnowledgeBase
-import os
+from langchain_core.messages import HumanMessage, AIMessage
+
+# Ensure pathing is correct
+# ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+# if ROOT_DIR not in sys.path:
+#     sys.path.append(ROOT_DIR)
 
 def main():
     st.set_page_config(page_title="AI Fitness Coach", layout="wide")
     st.title("🏋️ AI Fitness Coach (Agentic Edition)")
 
-    # --- SESSION STATE INITIALIZATION ---
+    # ---------------- SESSION STATE ----------------
     if "messages" not in st.session_state:
         st.session_state.messages = []
-    if "processing_done" not in st.session_state:
-        st.session_state.processing_done = False
-    if "last_uploaded_file" not in st.session_state:
-        st.session_state.last_uploaded_file = None
+    if "workout_summary" not in st.session_state:
+        st.session_state.workout_summary = "No workout analyzed yet."
 
-    tab1, tab2, tab3 = st.tabs(["Live Coach", "Video Analysis", "Chat with Coach"])
+    # ---------------- MAIN LAYOUT ----------------
+    left, right = st.columns([7, 3], gap="large")
 
-    with tab1:
-        st.info("Webcam mode is offline. Use 'Video Analysis' tab.")
+    with left:
+        tab1, tab2 = st.tabs(["🎥 Video Analysis", "⚡ Live Mode"])
+        with tab1:
+            render_upload_mode()
+        with tab2:
+            st.info("Live coaching coming soon.")
 
-    with tab2:
-        render_upload_mode()
+    with right:
+        st.markdown("## 💬 Coach Alex")
+        st.caption("I'm Alex! Ask me anything about your training.")
 
-    with tab3:
-        st.header("💬 Chat with Coach Alex")
-        
-        # Guard for API Key and Knowledge Base
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            st.error("Please set OPENAI_API_KEY in your .env file")
-            return
+        chat_box = st.container(height=500)
+        with chat_box:
+            for msg in st.session_state.messages:
+                with st.chat_message(msg["role"]):
+                    st.markdown(msg["content"])
 
-        # Sidebar button to index PDFs (Do this once)
-        if st.sidebar.button("Index Research PDFs"):
-            kb = KnowledgeBase(api_key)
-            with st.spinner("Reading research papers..."):
-                msg = kb.build_knowledge_base()
-                st.sidebar.success(msg)
+        user_input = st.chat_input("Say 'Hi' to start...")
 
-        # Display chat history
-        for message in st.session_state.messages:
-            with st.chat_message(message["role"]):
-                st.markdown(message["content"])
+        if user_input:
+            st.session_state.messages.append({"role": "user", "content": user_input})
+            with chat_box:
+                with st.chat_message("user"):
+                    st.markdown(user_input)
 
-        if prompt := st.chat_input("Ask Coach Alex about your last set..."):
-            st.session_state.messages.append({"role": "user", "content": prompt})
-            with st.chat_message("user"):
-                st.markdown(prompt)
+            # Convert history for Agent memory
+            chat_history = []
+            for m in st.session_state.messages[-5:]:
+                if m["role"] == "user": chat_history.append(HumanMessage(content=m["content"]))
+                else: chat_history.append(AIMessage(content=m["content"]))
 
-            with st.chat_message("assistant"):
-                agent = FitnessAgent()
-                with st.spinner("Alex is reviewing your biomechanics data..."):
-                    response = agent.get_coaching_advice(prompt)
-                    st.markdown(response)
+            with chat_box:
+                with st.chat_message("assistant"):
+                    with st.spinner("Alex is typing..."):
+                        agent = FitnessAgent()
+                        response = agent.get_coaching_advice(
+                            user_input, 
+                            chat_history, 
+                            st.session_state.workout_summary
+                        )
+                        st.markdown(response)
+
             st.session_state.messages.append({"role": "assistant", "content": response})
+            st.rerun()
 
 if __name__ == "__main__":
     main()
