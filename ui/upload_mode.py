@@ -11,7 +11,7 @@ def render_upload_mode():
     st.subheader("📹 Workout Analysis")
     
     # NEW: Exercise Selection
-    exercise = st.radio("Select Exercise:", ["Squat", "Bicep Curl"], horizontal=True)
+    exercise = st.radio("Select Exercise:", ["Squat", "Bicep Curl", "Overhead Press"], horizontal=True)
     
     uploaded_file = st.file_uploader("Upload video", type=["mp4", "mov", "avi"], key="workout_video_uploader")
 
@@ -48,6 +48,7 @@ def render_upload_mode():
             errors = df[df["error_tag"] != "NONE"].drop_duplicates(subset=["rep_count"])
             st.markdown("### 📊 Form Issue Logs")
             if not errors.empty:
-                st.table(errors[["rep_count", "knee_angle", "error_tag"]])
+                display_df = errors[["rep_count", "primary_metric", "secondary_metric", "error_tag"]].copy()
+                st.table(display_df)
             else:
                 st.success("Perfect form! No issues detected.")

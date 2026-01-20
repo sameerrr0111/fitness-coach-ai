@@ -43,6 +43,14 @@ def generate_workout_summary():
                     summary_parts.append(
                         f"{count} squats lacked sufficient depth."
                     )
+                elif err == "INCOMPLETE_LOCKOUT":
+                    summary_parts.append(
+                        f"User didn't fully lock out the arms on {count} shoulder press reps."
+                    )
+                elif err == "SHORT_RANGE_OF_MOTION":
+                    summary_parts.append(
+                        f"Hands didn't come down far enough on {count} press reps."
+                    )
 
         # ---------------- FINAL SUMMARY ----------------
         return " ".join(summary_parts)

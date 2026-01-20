@@ -8,22 +8,21 @@ class WorkoutLogger:
         self.filename = filename
         os.makedirs(os.path.dirname(self.filename), exist_ok=True)
         if not os.path.isfile(self.filename):
-            self.clear_log() # Create fresh if doesn't exist
+            self.clear_log()
 
     def clear_log(self):
-        """Wipes the CSV file and writes only the headers."""
-        df = pd.DataFrame(columns=['timestamp', 'exercise', 'rep_count', 'knee_angle', 'hip_angle', 'error_tag'])
+        # Changed headers to be exercise-agnostic
+        df = pd.DataFrame(columns=['timestamp', 'exercise', 'rep_count', 'primary_metric', 'secondary_metric', 'error_tag'])
         df.to_csv(self.filename, index=False)
 
-    def log_rep(self, exercise, rep_count, knee_angle, hip_angle, error_tag):
+    def log_rep(self, exercise, rep_count, m1, m2, error_tag):
         data = {
             'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             'exercise': exercise,
             'rep_count': rep_count,
-            'knee_angle': round(knee_angle, 2),
-            'hip_angle': round(hip_angle, 2),
+            'primary_metric': round(m1, 2),
+            'secondary_metric': round(m2, 2),
             'error_tag': error_tag if error_tag else "NONE"
         }
         df = pd.DataFrame([data])
-        # We still use 'a' here because we want to log multiple frames *during* one video
         df.to_csv(self.filename, mode='a', header=False, index=False)

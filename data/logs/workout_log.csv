@@ -1,5 +1,3 @@
-timestamp,exercise,rep_count,knee_angle,hip_angle,error_tag
-2026-01-18 17:22:12,Bicep Curl,1,51.1,0.33,NONE
-2026-01-18 17:22:28,Bicep Curl,2,49.01,0.33,NONE
-2026-01-18 17:22:47,Bicep Curl,3,47.24,0.34,NONE
-2026-01-18 17:23:18,Bicep Curl,4,58.65,0.08,NONE
+timestamp,exercise,rep_count,primary_metric,secondary_metric,error_tag
+2026-01-20 23:35:13,Bicep Curl,1,165.85,0.09,INCOMPLETE_CONTRACTION
+2026-01-20 23:35:29,Bicep Curl,2,51.1,0.33,ELBOW_SWINGING

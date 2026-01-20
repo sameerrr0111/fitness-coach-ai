@@ -67,23 +67,36 @@ def check_squat_form(hip_angle, knee_angle):
 
 # --- BICEP CURL LOGIC ---
 def check_curl_form(elbow_angle, swing_score):
-    """
-    elbow_angle: Tightest angle at the top.
-    swing_score: Max horizontal elbow drift relative to torso length.
-    """
     feedback = "Good Rep"
     error_tag = "NONE"
     
-    if elbow_angle > 65: # Slightly more forgiving angle
+    # 1. Contraction check
+    if elbow_angle > 65: 
         feedback = "Bring the weight higher!"
         error_tag = "INCOMPLETE_CONTRACTION"
     
-    # NORMALIZED THRESHOLD:
-    # 0.0 means the elbow is perfectly under the shoulder.
-    # 0.35 means the elbow moved forward by 35% of the torso length.
-    # We allow some "natural" float (up to 0.3)
-    elif swing_score > 0.38: 
-        feedback = "Too much momentum! Pin your elbow."
+    # 2. TIGHTENED THRESHOLD: 
+    # Based on your logs, bad reps are ~0.33. 
+    # Let's set the limit to 0.20 to catch that sway.
+    elif swing_score > 0.20: 
+        feedback = "Elbow moved! Keep it pinned to your ribcage."
         error_tag = "ELBOW_SWINGING"
+        
+    return feedback, error_tag
+
+
+def check_press_form(max_extension, min_flexion):
+    feedback = "Good Rep"
+    error_tag = "NONE"
+
+    # Full extension (Lockout) should be high
+    if max_extension < 150: # Changed from 155 to 150
+        feedback = "Push higher! Fully straighten your arms."
+        error_tag = "INCOMPLETE_LOCKOUT"
+    
+    # Hands should come down near shoulders (angle < 105)
+    elif min_flexion > 105: # Changed from 100 to 105
+        feedback = "Bring the weights lower to your shoulders."
+        error_tag = "SHORT_RANGE_OF_MOTION"
         
     return feedback, error_tag
